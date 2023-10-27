@@ -1,0 +1,4 @@
+1. draft based in andorra
+2. optimization
+    2.1. binary file
+    2.2. memory usage (pointers)
