@@ -12,6 +12,8 @@ import numpy as np
 import sys
 import mplleaflet
 
+
+
 # fitxer d'entrada
 in_file = sys.argv[1]
 
