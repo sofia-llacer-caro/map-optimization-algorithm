@@ -15,7 +15,7 @@ typedef struct {
     struct Node* parent; // Parent node in the path
 } Node;
 
-// Function to calculate the Euclidean distance between two nodes
+// Function to calculate the Euclidean distance between two nodes (heuristic function)
 double calculateDistance(Node *node1, Node *node2) {
     double dx = node1->lat - node2->lat;
     double dy = node1->lon - node2->lon;
