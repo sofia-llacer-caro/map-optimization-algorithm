@@ -36,6 +36,8 @@ end procedure
 ```
 
 ## Code details of the implementation
+- structure used
+    - node structure
 - everything is in a main(), or we have programmed the functions
 
 ## Usage example
