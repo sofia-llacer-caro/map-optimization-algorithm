@@ -39,8 +39,8 @@ end procedure
 
 ### Structure of the code
 The program has three main parts:
-1. **Map interpretation** \\
-2. **Heuristic function** \\
+1. **Map interpretation** 
+2. **Heuristic function** 
 3. **Astar algorithm**
 
 ### Map file format
