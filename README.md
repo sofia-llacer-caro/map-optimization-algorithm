@@ -37,6 +37,12 @@ end procedure
 
 ## Code details of the implementation
 
+### Structure of the code
+The program has three main parts:
+1. **Map interpretation** \\
+2. **Heuristic function** \\
+3. **Astar algorithm**
+
 ### Map file format
 The choice of file format when reading the information in the map is important when it comes to execution time. The file initially provided was in the .csv extension. Reading the map and extracting information from this type of file in the case of Andorra would take around 0.136 s. When reading it in a .bin extension, the same process would take 0.00342 s. This is a significant time-efficiency improvement, especially when considering more information-heavy maps such as Catalunya's or Spain's.
 
