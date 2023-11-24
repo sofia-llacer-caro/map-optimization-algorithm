@@ -10,6 +10,21 @@
 
 #define MAXSUCC 9  // in an optimal implementation it must be removed
 
+/*
+// Allocate memory for the successors array
+nodes[index].successors = (unsigned long *)malloc(nodes[index].nsucc * sizeof(unsigned long));
+
+// Check if the allocation was successful
+if (nodes[index].successors == NULL) {
+    // Handle memory allocation failure
+    printf("Error when allocating memory for successors\n");
+    return 3; // or another error code
+}
+
+// Now you can use nodes[index].successors like an array.
+// Don't forget to free the memory when you're done with it.
+free(nodes[index].successors);
+*/
 
 typedef struct {
     unsigned long id; // Node identification
