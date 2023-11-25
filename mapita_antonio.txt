@@ -1,0 +1,3 @@
+- store information from bin file to node structure, binary search
+- heuristic
+- astar

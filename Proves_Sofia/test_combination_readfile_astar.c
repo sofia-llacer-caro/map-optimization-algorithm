@@ -1,20 +1,30 @@
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 #include <string.h>
 #include <time.h>
 
-#define MAXSUCC 9  // in an optimal implementation it must be removed
+#define MAXSUCC 9
 
-typedef struct {
-    unsigned long id; // Node identification
-    char name[200];   // in an optimal implementation it must change to a pointer
-    double lat, lon;  // Node position
-    unsigned short nsucc;  // Number of node successors; i. e. length of successors
-    unsigned long successors[MAXSUCC];  // in an optimal implementation it must change to a pointer
-} node;
+typedef struct Node {
+    unsigned long id;
+    char name[200];
+    double lat, lon;
+    unsigned short nsucc;
+    unsigned long successors[MAXSUCC];
 
-unsigned long searchNode(unsigned long id, node *nodes, unsigned long nnodes) {
-    // The implementation of the searchNode function goes here
+    // A* specific information
+    double cost;
+    double heuristic;
+    struct Node* parent;
+} Node;
+
+typedef struct ListNode {
+    Node* node;
+    struct ListNode* next;
+} ListNode;
+
+unsigned long searchNode(unsigned long id, Node *nodes, unsigned long nnodes) {
     unsigned long l = 0, r = nnodes - 1, m;
     while (l <= r) {
         m = l + (r - l) / 2;
@@ -29,7 +39,6 @@ unsigned long searchNode(unsigned long id, node *nodes, unsigned long nnodes) {
     return nnodes + 1;
 }
 
-// Function to write data to a binary file
 void writeBinaryFile(const char *mapname) {
     clock_t start_time;
     FILE *mapfile;
@@ -56,18 +65,19 @@ void writeBinaryFile(const char *mapname) {
 
     rewind(mapfile);
 
-    node *nodes;
+    Node *nodes;
     char *tmpline, *field, *ptr;
     unsigned long index = 0;
 
-    nodes = (node *)malloc(nnodes * sizeof(node));
+    nodes = (Node *)malloc(nnodes * sizeof(Node));
     if (nodes == NULL) {
         printf("Error when allocating the memory for the nodes\n");
         exit(2);
     }
 
     while (getline(&line, &len, mapfile) != -1) {
-        if (strncmp(line, "#", 1) == 0) continue;
+        if (strncmp(line, "#", 1) == 0)
+            continue;
         tmpline = line;
         field = strsep(&tmpline, "|");
         if (strcmp(field, "node") == 0) {
@@ -93,11 +103,13 @@ void writeBinaryFile(const char *mapname) {
     int oneway;
     unsigned long nedges = 0, origin, dest, originId, destId;
     while (getline(&line, &len, mapfile) != -1) {
-        if (strncmp(line, "#", 1) == 0) continue;
+        if (strncmp(line, "#", 1) == 0)
+            continue;
         tmpline = line;
         field = strsep(&tmpline, "|");
         if (strcmp(field, "way") == 0) {
-            for (int i = 0; i < 7; i++) field = strsep(&tmpline, "|");
+            for (int i = 0; i < 7; i++)
+                field = strsep(&tmpline, "|");
             if (strcmp(field, "") == 0)
                 oneway = 0;
             else if (strcmp(field, "oneway") == 0)
@@ -106,12 +118,14 @@ void writeBinaryFile(const char *mapname) {
                 continue;
             field = strsep(&tmpline, "|");
             field = strsep(&tmpline, "|");
-            if (field == NULL) continue;
+            if (field == NULL)
+                continue;
             originId = strtoul(field, &ptr, 10);
             origin = searchNode(originId, nodes, nnodes);
             while (1) {
                 field = strsep(&tmpline, "|");
-                if (field == NULL) break;
+                if (field == NULL)
+                    break;
                 destId = strtoul(field, &ptr, 10);
                 dest = searchNode(destId, nodes, nnodes);
                 if ((origin == nnodes + 1) || (dest == nnodes + 1)) {
@@ -119,7 +133,8 @@ void writeBinaryFile(const char *mapname) {
                     origin = dest;
                     continue;
                 }
-                if (origin == dest) continue;
+                if (origin == dest)
+                    continue;
 
                 int newdest = 1;
                 for (int i = 0; i < nodes[origin].nsucc; i++)
@@ -180,16 +195,14 @@ void writeBinaryFile(const char *mapname) {
 
     binmapfile = fopen(binmapname, "wb");
     fwrite(&nnodes, sizeof(unsigned long), 1, binmapfile);
-    fwrite(nodes, sizeof(node), nnodes, binmapfile);
+    fwrite(nodes, sizeof(Node), nnodes, binmapfile);
     fclose(binmapfile);
 
     free(nodes);
 }
 
-// Function to read data from a binary file
-void readBinaryFile(const char *binmapname) {
+void readBinaryFile(const char *binmapname, Node** nodes, unsigned long* nnodes) {
     clock_t start_time;
-    unsigned long nnodes;
 
     start_time = clock();
 
@@ -200,32 +213,93 @@ void readBinaryFile(const char *binmapname) {
         exit(1);
     }
 
-    fread(&nnodes, sizeof(unsigned long), 1, binmapfile);
+    fread(nnodes, sizeof(unsigned long), 1, binmapfile);
 
-    node *nodes;
-    nodes = (node *)malloc(nnodes * sizeof(node));
-    if (nodes == NULL) {
+    *nodes = (Node *)malloc(*nnodes * sizeof(Node));
+    if (*nodes == NULL) {
         printf("Error when allocating the memory for the nodes\n");
         exit(2);
     }
 
-    fread(nodes, sizeof(node), nnodes, binmapfile);
+    fread(*nodes, sizeof(Node), *nnodes, binmapfile);
     fclose(binmapfile);
 
-    printf("Total number of nodes is %ld\n", nnodes);
+    printf("Total number of nodes is %ld\n", *nnodes);
     printf("Elapsed time: %f seconds\n", (float)(clock() - start_time) / CLOCKS_PER_SEC);
+}
 
-    for (unsigned long i = 0; i < nnodes; i++) {
-        if (nodes[i].nsucc > 4) {
-            unsigned long index = i;
-            printf("Node %lu has id=%lu and %u successors:\n", index, nodes[index].id, nodes[index].nsucc);
-            for (int j = 0; j < nodes[index].nsucc; j++)
-                printf("  Node %lu with id %lu.\n", nodes[index].successors[j], nodes[nodes[index].successors[j]].id);
-            break;
+double calculateDistance(Node *node1, Node *node2) {
+    double dx = node1->lat - node2->lat;
+    double dy = node1->lon - node2->lon;
+    return sqrt(dx * dx + dy * dy);
+}
+
+void addToOpenList(ListNode** openList, Node* newNode) {
+    // ... (your existing code for adding to open list)
+}
+
+Node* removeFromOpenList(ListNode** openList) {
+    // ... (your existing code for removing from open list)
+}
+
+void addToClosedList(ListNode** closedList, Node* newNode) {
+    // ... (your existing code for adding to closed list)
+}
+
+int isInOpenList(ListNode* openList, Node* targetNode) {
+    // ... (your existing code for checking if a node is in open list)
+}
+
+void reconstructAndPrintPath(Node* start, Node* goal) {
+    // ... (your existing code for reconstructing and printing the path)
+}
+
+void astar(Node* nodes, unsigned long nnodes, Node* start, Node* goal) {
+    ListNode* openList = NULL;
+    ListNode* closedList = NULL;
+
+    start->cost = 0.0;
+    start->heuristic = calculateDistance(start, goal);
+    start->parent = NULL;
+    addToOpenList(&openList, start);
+
+    while (openList != NULL) {
+        Node* current = removeFromOpenList(&openList);
+        addToClosedList(&closedList, current);
+
+        if (current == goal) {
+            reconstructAndPrintPath(start, goal);
+            return;
+        }
+
+        for (int i = 0; i < current->nsucc; i++) {
+            Node* neighbor = &nodes[current->successors[i]];
+
+            double tentativeGCost = current->cost + calculateDistance(current, neighbor);
+
+            if (!isInOpenList(openList, neighbor) || tentativeGCost < neighbor->cost) {
+                neighbor->cost = tentativeGCost;
+                neighbor->heuristic = calculateDistance(neighbor, goal);
+                neighbor->parent = current;
+
+                if (!isInOpenList(openList, neighbor)) {
+                    addToOpenList(&openList, neighbor);
+                }
+            }
         }
     }
 
-    free(nodes);
+    printf("No path found!\n");
+}
+
+Node* findStartNode(Node* nodes, unsigned long nnodes) {
+    // TODO: Implement logic to find the start node
+    return &nodes[0];
+}
+
+Node* findGoalNode(Node* nodes, unsigned long nnodes) {
+    // TODO: Implement logic to find the goal node
+    return &nodes[nnodes - 1];
 }
 
 int main(int argc, char *argv[]) {
@@ -239,7 +313,19 @@ int main(int argc, char *argv[]) {
 
         if (len >= 4 && strcmp(filename + len - 4, ".bin") == 0) {
             // If the file has a .bin extension, read the binary file
-            readBinaryFile(filename);
+            Node* nodes;
+            unsigned long nnodes;
+
+            readBinaryFile(filename, &nodes, &nnodes);
+
+            // Find start and goal nodes
+            Node* start = findStartNode(nodes, nnodes);
+            Node* goal = findGoalNode(nodes, nnodes);
+
+            // Run A* algorithm
+            astar(nodes, nnodes, start, goal);
+
+            free(nodes);
         } else {
             // Otherwise, assume it's a CSV file and write the binary file
             writeBinaryFile(filename);
